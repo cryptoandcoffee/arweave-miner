@@ -1,37 +1,38 @@
-FROM debian:bullseye
-
 WORKDIR /app
 
 ENV DEBIAN_FRONTEND noninteractive
 
-RUN dpkg --configure -a
+# Consolidate package installation to reduce layers and overall size
+RUN apt update -y && apt install -y \
+    tzdata \
+    wget \
+    libssl-dev \
+    cmake \
+    git \
+    gcc \
+    g++ \
+    automake \
+    libtool \
+    autoconf \
+    gnupg \
+    gnupg2 \
+    libgmp-dev && \
+    wget https://packages.erlang-solutions.com/ubuntu/erlang_solutions.asc && \
+    apt-key add erlang_solutions.asc && \
+    echo "deb https://packages.erlang-solutions.com/ubuntu focal contrib" | tee /etc/apt/sources.list.d/erlang-solution.list && \
+    apt update && apt install -y erlang && \
+    rm -rf /var/lib/apt/lists/*
 
-RUN apt update -y
-RUN apt install -y tzdata
-RUN apt install -y wget
-RUN apt install -y libssl-dev
-RUN apt install -y cmake
-RUN apt install -y git
-RUN apt install -y gcc
-RUN apt install -y g++
-RUN apt install -y automake
-RUN apt install -y libtool
-RUN apt install -y autoconf
-RUN apt install -y gnupg
-RUN apt install -y gnupg2
-RUN apt install -y libgmp-dev
+# Clone, build, and unpack Arweave in one layer to keep the image clean
+RUN cd /tmp && \
+    git clone --recursive --depth 1 --branch N.2.7.1.0 https://github.com/ArweaveTeam/arweave.git && \
+    cd arweave && ./rebar3 as prod tar && \
+    tar -zxvf _build/prod/rel/arweave/arweave-2.7.1.0.tar.gz -C /app && \
+    rm -rf /tmp/arweave
 
-RUN wget https://packages.erlang-solutions.com/ubuntu/erlang_solutions.asc; apt-key add erlang_solutions.asc
-RUN echo "deb https://packages.erlang-solutions.com/ubuntu focal contrib" | tee /etc/apt/sources.list.d/erlang-solution.list
-RUN apt update
-RUN apt install -y erlang
-
-RUN cd /tmp; git clone --recursive --depth 1 --branch N.2.7.1.0 https://github.com/ArweaveTeam/arweave.git
-RUN cd /tmp/arweave; ./rebar3 as prod tar
-RUN cd /app; tar -zxvf /tmp/arweave/_build/prod/rel/arweave/arweave-2.7.1.0.tar.gz
-
+# Increase file descriptor limit
 RUN ulimit -n 65535
 
 ADD entrypoint.sh /app/entrypoint.sh
 
-ENTRYPOINT [ "/app/entrypoint.sh" ]
+ENTRYPOINT ["/app/entrypoint.sh"]
