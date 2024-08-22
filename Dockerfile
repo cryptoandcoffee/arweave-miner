@@ -25,9 +25,9 @@ RUN apt update -y && apt install -y \
 
 # Clone, build, and unpack Arweave in one layer to keep the image clean
 RUN cd /tmp && \
-    git clone --recursive --depth 1 --branch N.2.7.1.0 https://github.com/ArweaveTeam/arweave.git && \
+    git clone --recursive --depth 1 --branch N.2.7.4.0 https://github.com/ArweaveTeam/arweave.git && \
     cd arweave && ./rebar3 as prod tar && \
-    tar -zxvf _build/prod/rel/arweave/arweave-2.7.1.0.tar.gz -C /app && \
+    tar -zxvf _build/prod/rel/arweave/arweave-2.7.4.0.tar.gz -C /app && \
     rm -rf /tmp/arweave
 
 # Increase file descriptor limit
